@@ -1,0 +1,6 @@
+.env.local
+secrets/
+*.secret.json
+google-service-account*.json
+service-account*.json
+dashboard-verification.png
