@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Site Traffic Monitor</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">STM</div>
+        <div>
+          <h1>Site Traffic Monitor</h1>
+          <p>Local SEO command center</p>
+        </div>
+      </div>
+
+      <label class="field">
+        <span>Project</span>
+        <select id="projectSelect"></select>
+      </label>
+
+      <label class="field">
+        <span>Subdomain</span>
+        <select id="subdomainSelect"></select>
+      </label>
+
+      <fieldset class="field">
+        <legend>Report Type</legend>
+        <div class="segment" role="tablist" aria-label="Report type">
+          <button class="segment-button is-active" data-report-type="daily" type="button">Daily</button>
+          <button class="segment-button" data-report-type="weekly" type="button">Weekly</button>
+          <button class="segment-button" data-report-type="28-days" type="button">28 Days</button>
+        </div>
+      </fieldset>
+
+      <label class="field">
+        <span>Run Mode</span>
+        <select id="runMode">
+          <option value="latest">Latest available</option>
+          <option value="manual">Manual date</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Report End Date</span>
+        <input id="reportEndDate" type="date">
+      </label>
+
+      <div class="sidebar-actions">
+        <button id="runCheckButton" class="primary-button" type="button">Run Check</button>
+        <button id="exportButton" class="icon-button" type="button" title="Export current snapshot" aria-label="Export current snapshot">
+          <span aria-hidden="true">↓</span>
+        </button>
+      </div>
+
+      <div class="data-card">
+        <span class="eyebrow">Snapshot</span>
+        <strong id="snapshotName">Loading</strong>
+        <small id="snapshotGenerated">Waiting for local data</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="toolbar">
+        <div>
+          <p class="eyebrow" id="reportScope">Local report</p>
+          <h2 id="reportTitle">SEO Traffic Monitor</h2>
+        </div>
+        <div class="status-row" id="statusRow"></div>
+      </section>
+
+      <section class="period-band" aria-label="Report periods">
+        <div>
+          <span>Current</span>
+          <strong id="currentPeriod">-</strong>
+        </div>
+        <div>
+          <span>Baseline</span>
+          <strong id="baselinePeriod">-</strong>
+        </div>
+        <div>
+          <span>Data Freshness</span>
+          <strong id="freshness">-</strong>
+        </div>
+      </section>
+
+      <section class="focus-band" aria-label="Report focus">
+        <div>
+          <span>Primary Focus</span>
+          <strong id="primaryFocus">-</strong>
+        </div>
+        <div>
+          <span>Best For</span>
+          <strong id="bestFor">-</strong>
+        </div>
+        <div>
+          <span>Decision Output</span>
+          <strong id="decisionOutput">-</strong>
+        </div>
+      </section>
+
+      <section class="kpi-grid" id="kpiGrid" aria-label="Key metrics"></section>
+
+      <section class="content-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Decline Risks</h3>
+            <span id="riskCount">0</span>
+          </div>
+          <div class="item-list" id="riskList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Growth Opportunities</h3>
+            <span id="opportunityCount">0</span>
+          </div>
+          <div class="item-list" id="opportunityList"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Executable Action Queue</h3>
+          <span id="actionCount">0</span>
+        </div>
+        <div class="action-table-wrap">
+          <table class="action-table">
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Action</th>
+                <th>Target</th>
+                <th>How To</th>
+                <th>Output</th>
+              </tr>
+            </thead>
+            <tbody id="actionTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>SEO Strategy Plan</h3>
+          <span id="strategyCount">0</span>
+        </div>
+        <div class="strategy-grid" id="strategyGrid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Technical Health Checks</h3>
+          <span id="technicalCount">0</span>
+        </div>
+        <div class="technical-grid" id="technicalGrid"></div>
+      </section>
+
+      <section class="content-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Top Pages</h3>
+            <span id="pageCount">0</span>
+          </div>
+          <div class="compact-list" id="topPages"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Top Queries</h3>
+            <span id="queryCount">0</span>
+          </div>
+          <div class="compact-list" id="topQueries"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Data Sources</h3>
+          <span id="sourceCount">0</span>
+        </div>
+        <div class="source-grid" id="sourceGrid"></div>
+      </section>
+    </main>
+
+    <template id="emptyTemplate">
+      <div class="empty-state">
+        <strong>No items in this section</strong>
+        <span>The current snapshot did not flag anything here.</span>
+      </div>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
