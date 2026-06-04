@@ -4,3 +4,7 @@ secrets/
 google-service-account*.json
 service-account*.json
 dashboard-verification.png
+data/imports/*.csv
+data/imports/source_metadata.json
+data/imports/screaming_frog_raw/
+data/snapshots/
