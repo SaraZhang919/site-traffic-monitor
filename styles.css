@@ -241,6 +241,19 @@ button {
   border-color: #f0d39a;
 }
 
+.status-pill.pending,
+.status-pill.not.connected {
+  color: var(--muted);
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+.status-pill.blocked {
+  color: var(--amber);
+  background: var(--amber-bg);
+  border-color: #f0d39a;
+}
+
 .status-pill.risk,
 .status-pill.critical {
   color: var(--red);
@@ -254,6 +267,7 @@ button {
 .content-grid,
 .strategy-grid,
 .technical-grid,
+.evidence-grid,
 .source-grid {
   display: grid;
   gap: 14px;
@@ -538,6 +552,10 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.evidence-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .technical-card {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -558,6 +576,63 @@ button {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
+}
+
+.evidence-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.evidence-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.evidence-card h4,
+.evidence-card p {
+  margin: 0;
+}
+
+.evidence-card h4 {
+  font-size: 14px;
+}
+
+.evidence-card p,
+.evidence-row span,
+.evidence-row em {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.evidence-list {
+  display: grid;
+  gap: 8px;
+}
+
+.evidence-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.evidence-row strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.evidence-row em {
+  color: var(--text);
+  font-style: normal;
 }
 
 .source-card {
@@ -606,6 +681,7 @@ button {
   .kpi-grid,
   .strategy-grid,
   .technical-grid,
+  .evidence-grid,
   .source-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -630,6 +706,7 @@ button {
   .content-grid,
   .strategy-grid,
   .technical-grid,
+  .evidence-grid,
   .source-grid {
     grid-template-columns: 1fr;
   }
