@@ -1,0 +1,3 @@
+Date,Subdomain,Check,Status,Metric,Value,Issue,Source
+2026-06-03,www.vidmud.com,Indexing Abnormalities,watch,Affected URLs,14,Crawled currently not indexed increased on priority pages,GSC Page Indexing
+2026-06-03,www.vidmud.com,Core Web Vitals,watch,Poor URLs,6,INP poor URL group remains unresolved,GSC Core Web Vitals
