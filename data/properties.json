@@ -1,0 +1,94 @@
+{
+  "defaultProject": "vidmud",
+  "defaultSubdomain": "en-www-vidmud-com",
+  "projects": [
+    {
+      "id": "vidmud",
+      "name": "Vidmud",
+      "source": "Properties.xlsx",
+      "subdomains": [
+        {
+          "id": "en-www-vidmud-com",
+          "language": "EN",
+          "label": "EN - www.vidmud.com",
+          "host": "www.vidmud.com",
+          "gscProperty": "https://www.vidmud.com",
+          "ga4PropertyId": "438691348"
+        },
+        {
+          "id": "de-de-vidmud-com",
+          "language": "DE",
+          "label": "DE - de.vidmud.com",
+          "host": "de.vidmud.com",
+          "gscProperty": "https://de.vidmud.com",
+          "ga4PropertyId": "459413242"
+        },
+        {
+          "id": "fr-fr-vidmud-com",
+          "language": "FR",
+          "label": "FR - fr.vidmud.com",
+          "host": "fr.vidmud.com",
+          "gscProperty": "https://fr.vidmud.com",
+          "ga4PropertyId": "459379487"
+        },
+        {
+          "id": "es-es-vidmud-com",
+          "language": "ES",
+          "label": "ES - es.vidmud.com",
+          "host": "es.vidmud.com",
+          "gscProperty": "https://es.vidmud.com",
+          "ga4PropertyId": "459417270"
+        },
+        {
+          "id": "it-it-vidmud-com",
+          "language": "IT",
+          "label": "IT - it.vidmud.com",
+          "host": "it.vidmud.com",
+          "gscProperty": "https://it.vidmud.com",
+          "ga4PropertyId": "459369622"
+        },
+        {
+          "id": "jp-jp-vidmud-com",
+          "language": "JP",
+          "label": "JP - jp.vidmud.com",
+          "host": "jp.vidmud.com",
+          "gscProperty": "https://jp.vidmud.com",
+          "ga4PropertyId": "459364055"
+        },
+        {
+          "id": "tw-tw-vidmud-com",
+          "language": "TW",
+          "label": "TW - tw.vidmud.com",
+          "host": "tw.vidmud.com",
+          "gscProperty": "https://tw.vidmud.com",
+          "ga4PropertyId": "459389514"
+        },
+        {
+          "id": "ar-ar-vidmud-com",
+          "language": "AR",
+          "label": "AR - ar.vidmud.com",
+          "host": "ar.vidmud.com",
+          "gscProperty": "https://ar.vidmud.com",
+          "ga4PropertyId": "459394157"
+        },
+        {
+          "id": "kr-kr-vidmud-com",
+          "language": "KR",
+          "label": "KR - kr.vidmud.com",
+          "host": "kr.vidmud.com",
+          "gscProperty": "https://kr.vidmud.com",
+          "ga4PropertyId": "459392728"
+        },
+        {
+          "id": "pt-pt-vidumud-com",
+          "language": "PT",
+          "label": "PT - pt.vidumud.com",
+          "host": "pt.vidumud.com",
+          "gscProperty": "https://pt.vidmud.com",
+          "ga4PropertyId": "459404147",
+          "note": "Workbook has Subdomain URL pt.vidumud.com and GSC property https://pt.vidmud.com."
+        }
+      ]
+    }
+  ]
+}
