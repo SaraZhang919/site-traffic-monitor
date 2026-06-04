@@ -9,6 +9,10 @@ ga4_daily.csv
 gsc_daily.csv
 gsc_page_query.csv
 technical_health.csv
+ahrefs_pages.csv
+semrush_keywords.csv
+screaming_frog_pages.csv
+screaming_frog_internal_links.csv
 ```
 
 Only `ga4_daily.csv` and `gsc_daily.csv` are required for a basic snapshot.
@@ -63,6 +67,77 @@ Examples for `Check`:
 Indexing Abnormalities
 Core Web Vitals
 ```
+
+## ahrefs_pages.csv
+
+Optional. Used for external link support, referring-domain gap, and link velocity.
+
+Expected useful columns:
+
+```text
+Page,Referring Domains,Backlinks,New Links,Lost Links,Link Velocity
+```
+
+## semrush_keywords.csv
+
+Optional. Used for competitor/ranking enrichment and topic validation.
+
+Expected useful columns:
+
+```text
+Keyword,Position,Previous Position,Volume,KD,URL,Competitor
+```
+
+## screaming_frog_pages.csv
+
+Optional. Used for indexed ratio, crawl depth, technical debt, and low-inlink pages.
+
+Expected useful columns:
+
+```text
+Address,Status Code,Indexability,Canonical Link Element 1,Title 1,Meta Description 1,Word Count,Inlinks,Crawl Depth
+```
+
+## screaming_frog_internal_links.csv
+
+Optional. Used for exact internal link source pages and anchor opportunities.
+
+Expected useful columns:
+
+```text
+Source,Destination,Anchor,Status Code,Follow,Type
+```
+
+## Run Screaming Frog Locally
+
+Screaming Frog SEO Spider is installed locally at:
+
+```text
+D:\Screaming Frog SEO Spider\ScreamingFrogSEOSpiderCli.exe
+```
+
+Codex can run the local CLI directly with:
+
+```text
+node scripts/run-screaming-frog.mjs --url https://www.vidmud.com/ --date 2026-06-04 --subdomain www.vidmud.com
+```
+
+The runner exports raw crawl files to a plain ASCII temp folder by default, because Screaming Frog may not handle emoji characters in the project path:
+
+```text
+%TEMP%\site-traffic-monitor-screaming-frog\
+```
+
+Then it updates:
+
+```text
+data/imports/screaming_frog_pages.csv
+data/imports/screaming_frog_internal_links.csv
+```
+
+After that, regenerate the 28-day snapshot so internal link structure, indexed ratio, crawl depth, and technical debt can use real crawl data.
+
+For SEO optimization recommendations, the app treats Screaming Frog `Link Position = Content` as contextual internal links. Navigation, footer, header, aside, and head links are still shown as crawl evidence, but they are not counted as topical support.
 
 ## Generate A Snapshot
 
