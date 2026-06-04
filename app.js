@@ -297,6 +297,8 @@ function bindElements() {
     "strategyGrid",
     "technicalCount",
     "technicalGrid",
+    "crawlEvidenceCount",
+    "crawlEvidenceGrid",
     "pageCount",
     "topPages",
     "queryCount",
@@ -349,12 +351,10 @@ function bindEvents() {
     });
   });
 
-  els.runCheckButton.addEventListener("click", () => {
+  els.runCheckButton.addEventListener("click", async () => {
     state.runMode = els.runMode.value;
     state.reportEndDate = els.reportEndDate.value || todayIso();
-    const generated = generateManualSnapshot();
-    state.snapshot = generated;
-    render(generated);
+    await runMonitorCheck();
   });
 
   els.exportButton.addEventListener("click", exportSnapshot);
@@ -419,10 +419,44 @@ async function loadCurrentSnapshot() {
 }
 
 function snapshotPaths() {
+  const dated = `${CONFIG.snapshotBase}/${state.projectId}/${state.subdomainId}/${state.reportType}/${state.reportType}-${state.reportEndDate}.json`;
   return [
+    ...(state.runMode === "manual" ? [dated] : []),
     `${CONFIG.snapshotBase}/${state.projectId}/${state.subdomainId}/${state.reportType}/latest.json`,
     `${CONFIG.snapshotBase}/${state.projectId}/${state.reportType}/latest.json`
   ];
+}
+
+async function runMonitorCheck() {
+  const originalText = els.runCheckButton.textContent;
+  els.runCheckButton.disabled = true;
+  els.runCheckButton.textContent = "Running";
+  try {
+    const response = await fetch("/api/run-monitor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: state.reportType,
+        date: state.reportEndDate,
+        project: state.projectId,
+        subdomain: state.subdomainId,
+        source: "hybrid",
+        enrich: true,
+        technical: true
+      })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "Run failed");
+    }
+    state.snapshot = result.snapshot;
+    render(result.snapshot);
+  } catch (error) {
+    alert(`Run Check failed: ${error.message}`);
+  } finally {
+    els.runCheckButton.disabled = false;
+    els.runCheckButton.textContent = originalText;
+  }
 }
 
 function generateManualSnapshot() {
@@ -495,7 +529,7 @@ function render(snapshot) {
   els.snapshotName.textContent = snapshot.snapshotName || "local snapshot";
   els.snapshotGenerated.textContent = snapshot.generatedAt ? `Generated ${formatDateTime(snapshot.generatedAt)}` : "Not generated yet";
   els.currentPeriod.textContent = formatPeriod(snapshot.currentPeriod);
-  els.baselinePeriod.textContent = `${snapshot.baselinePeriod?.label || "Baseline"}: ${formatPeriod(snapshot.baselinePeriod)}`;
+  els.baselinePeriod.textContent = formatComparison(snapshot);
   els.freshness.textContent = snapshot.freshness || "Unknown";
   renderFocus(snapshot);
 
@@ -506,6 +540,7 @@ function render(snapshot) {
   renderActions(snapshot.actions || []);
   renderStrategy(snapshot.strategyPlan || []);
   renderTechnicalChecks(snapshot.technicalChecks || []);
+  renderCrawlEvidence(snapshot.crawlEvidence || []);
   renderCompactList(els.topPages, els.pageCount, snapshot.topPages || [], "path");
   renderCompactList(els.topQueries, els.queryCount, snapshot.topQueries || [], "query");
   renderSources(snapshot.dataSources || []);
@@ -571,10 +606,22 @@ function renderKpis(kpis) {
         <span class="delta ${deltaClass}">${formatSigned(kpi.absChange)}</span>
         <span class="delta ${deltaClass}">${formatSigned(kpi.pctChange)}%</span>
       </div>
-      <p class="baseline-note">Baseline ${formatNumber(kpi.baseline)} 路 ${escapeHtml(kpi.tier)} tier 路 ${escapeHtml(kpi.source)}</p>
+      <p class="baseline-note">Baseline ${formatNumber(kpi.baseline)} | ${escapeHtml(kpi.tier)} tier | ${escapeHtml(kpi.source)}</p>
     `;
+    const comparisonNote = renderKpiComparisonNode(kpi.comparisons);
+    if (comparisonNote) card.append(comparisonNote);
     els.kpiGrid.append(card);
   });
+}
+
+function renderKpiComparisonNode(comparisons = []) {
+  if (!Array.isArray(comparisons) || !comparisons.length) return null;
+  const note = document.createElement("p");
+  note.className = "baseline-note";
+  note.innerHTML = comparisons
+    .map((item) => `${escapeHtml(item.label)} ${formatNumber(item.value)}`)
+    .join("<br>");
+  return note;
 }
 
 function renderInsights(container, countEl, items) {
@@ -589,7 +636,7 @@ function renderInsights(container, countEl, items) {
     card.className = "insight-card";
     card.innerHTML = `
       <strong>${escapeHtml(item.title)}</strong>
-      <p>${escapeHtml(normalizePath(item.target || ""))}</p>
+      <p>${escapeHtml(normalizeMaybePath(item.target || ""))}</p>
       <p>${escapeHtml(item.diagnosis || "")}</p>
       <span class="badge">${escapeHtml(item.actionType || "Action")}</span>
     `;
@@ -613,7 +660,7 @@ function renderActions(actions) {
       <td>${escapeHtml(action.action)}</td>
       <td>${escapeHtml(normalizeMaybePath(action.target))}</td>
       <td>${escapeHtml(action.howTo)}</td>
-      <td>${escapeHtml(action.output)}</td>
+      <td>${escapeHtml(action.result || action.output)}</td>
     `;
     els.actionTableBody.append(row);
   });
@@ -673,6 +720,40 @@ function renderTechnicalChecks(checks) {
   });
 }
 
+function renderCrawlEvidence(groups) {
+  els.crawlEvidenceGrid.innerHTML = "";
+  const totalItems = groups.reduce((sum, group) => sum + (group.items?.length || 0), 0);
+  els.crawlEvidenceCount.textContent = String(totalItems);
+  if (!groups.length) {
+    els.crawlEvidenceGrid.append(emptyState());
+    return;
+  }
+  groups.forEach((group) => {
+    const card = document.createElement("article");
+    card.className = "evidence-card";
+    const items = group.items || [];
+    card.innerHTML = `
+      <header>
+        <div>
+          <h4>${escapeHtml(group.title)}</h4>
+          <p>${escapeHtml(group.summary || "")}</p>
+        </div>
+        <span class="status-pill ${escapeHtml(group.status || "watch")}">${escapeHtml(titleCase(group.status || "watch"))}</span>
+      </header>
+      <div class="evidence-list">
+        ${items.map((item) => `
+          <div class="evidence-row">
+            <strong>${escapeHtml(normalizeMaybePath(item.target || ""))}</strong>
+            <span>${escapeHtml(item.detail || "")}</span>
+            <em>${escapeHtml(item.nextStep || "")}</em>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    els.crawlEvidenceGrid.append(card);
+  });
+}
+
 function renderCompactList(container, countEl, items, key) {
   container.innerHTML = "";
   countEl.textContent = String(items.length);
@@ -702,6 +783,15 @@ function normalizeMaybePath(value) {
     return normalizePath(text);
   }
   return text;
+}
+
+function formatComparison(snapshot) {
+  if (Array.isArray(snapshot.comparisonOptions) && snapshot.comparisonOptions.length) {
+    return snapshot.comparisonOptions
+      .map((item) => `${item.label}: ${formatPeriod(item.period)}`)
+      .join(" | ");
+  }
+  return `${snapshot.baselinePeriod?.label || "Baseline"}: ${formatPeriod(snapshot.baselinePeriod)}`;
 }
 
 function renderSources(sources) {
