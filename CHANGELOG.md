@@ -130,3 +130,56 @@ Built the first local static dashboard.
 
 - Credentials stay local.
 - The user should provide a local credential file path and Google Sheet ID, not paste private keys into chat.
+
+## 0.4.0 - Hybrid Local Monitor Runner
+
+### Added
+
+- Added `server.mjs` so the dashboard `Run Check` button can trigger the local monitor workflow.
+- Added `scripts/run-monitor.mjs` as the end-to-end runner.
+- Added direct GA4/GSC API fallback through `scripts/fetch-google-apis.mjs`.
+- Added OpenAI enrichment through `scripts/enrich-snapshot-openai.mjs`.
+- Added technical health collection through `scripts/fetch-technical-health.mjs`.
+- Added daily secondary comparisons for previous 7-day average and previous day.
+- Added `comparisonOptions` metadata to snapshots.
+- Added blocked/not-connected technical health states in generated snapshots and UI styling.
+
+### Changed
+
+- Default workflow is now hybrid: existing snapshot first, then local imports, then APIs only when required.
+- Daily top-query opportunities are filtered more conservatively to reduce low-volume noise.
+- LLM action targets are sanitized so vague text like overall site performance is treated as sitewide text, not a URL path.
+- Technical health is no longer presented as a fake checklist when data is not connected.
+
+### Known Access Notes
+
+- GSC URL Inspection can return `blocked` when the service account does not own or have access to the exact GSC property.
+- PageSpeed Insights can return `blocked` when the Google project has no available quota.
+
+## 0.4.1 - 28-Day SEO Strategy Depth
+
+### Added
+
+- Added 28-day topic cluster detection from GSC page/query rows.
+- Added pillar topic candidates and supporting article ideas.
+- Added pages worth optimizing as a dedicated 28-day strategy output.
+- Added source-aware internal link structure and external link support sections.
+- Added optional SEMrush, Ahrefs, and Screaming Frog imports.
+- Added Screaming Frog technical debt check for indexed ratio, non-200 URLs, and low-inlink pages when crawl exports exist.
+
+### Changed
+
+- 28-day strategy now marks link/crawl-dependent findings as `pending` when SEMrush/Ahrefs/Screaming Frog data is not connected.
+- OpenAI enrichment no longer replaces required 28-day cluster planning categories with generic strategy output.
+
+## 0.4.2 - Screaming Frog Evidence Details
+
+### Added
+
+- Added `Crawl Evidence Details` dashboard section.
+- Added Screaming Frog drill-down rows for non-200 URLs, low-inlink pages, inlinks to the recommended optimization page, and raw crawl file locations.
+- Added duplicate filtering for inlink examples.
+
+### Fixed
+
+- Low-inlink evidence now only includes truly indexable 200 pages, not `Non-Indexable` rows.
