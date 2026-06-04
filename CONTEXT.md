@@ -101,6 +101,8 @@ For the monitor app:
 - Fetch missing data only when needed.
 - Generate local report snapshots.
 - Dashboard reads local snapshots.
+- Use direct GA4/GSC APIs only when the selected report cannot be satisfied by an existing snapshot or local import.
+- Use OpenAI enrichment only after numeric data is available, so the LLM explains and prioritizes data-backed findings rather than inventing metrics.
 
 The first local data bridge uses CSV imports in:
 
@@ -112,6 +114,30 @@ The generator is:
 
 ```text
 scripts/generate-snapshot.mjs
+```
+
+The end-to-end local runner is:
+
+```text
+scripts/run-monitor.mjs
+```
+
+Default runner behavior:
+
+```text
+existing dated snapshot -> local CSV imports -> GA4/GSC API fallback -> snapshot generation -> OpenAI enrichment
+```
+
+The dashboard `Run Check` button calls:
+
+```text
+POST /api/run-monitor
+```
+
+through:
+
+```text
+server.mjs
 ```
 
 Generated snapshots are subdomain-specific:
@@ -144,6 +170,34 @@ Default pulls should be focused:
 
 Manual deep audit can pull broader/full data when needed.
 
+## 28-Day Strategy Requirements
+
+The 28 Days report should be a strategic planning report, not a larger daily report.
+
+It must identify:
+
+- Potential topic clusters from rolling 28-day GSC page/query data.
+- Pillar topic candidates.
+- Potential supporting article ideas.
+- Existing pages worth optimizing.
+- Internal link structure opportunities.
+- External link support candidates.
+- Technical debt signals, including indexed ratio when Screaming Frog data exists.
+- Topic cluster decisions: invest, refresh, support, pause, or investigate.
+
+Source rules:
+
+- GSC/GA4 can suggest clusters, pages, and query opportunities.
+- SEMrush/Ahrefs are needed for stronger competitor, ranking, backlink, and link velocity evidence.
+- Screaming Frog is needed for exact internal link source pages, indexed ratio, crawl depth, and crawl technical debt.
+- If SEMrush/Ahrefs/Screaming Frog are not connected, mark those source-dependent sections as `pending` instead of inventing findings.
+
+For internal link recommendations, separate link positions:
+
+- Count `Content` links as contextual/topical support.
+- Keep `Navigation`, `Footer`, `Header`, `Aside`, and `Head` links as crawl/navigation evidence.
+- Do not let navigation/footer links make a page look sufficiently supported for topic-cluster optimization.
+
 ## Action Logic
 
 Actions should be executable or prepared where possible.
@@ -161,6 +215,21 @@ Action types:
 - Run/parse Screaming Frog crawl
 
 Weekly action output should include what happened, why it matters, what to do, how to do it, examples, and expected impact.
+
+## Technical Health
+
+Indexing abnormalities should come from GSC URL Inspection API or a connected GSC indexing export.
+
+Core Web Vitals should come from PageSpeed Insights API, CrUX, or another connected CWV source.
+
+Technical health statuses:
+
+- `good`: connected source did not find a priority issue.
+- `watch` or `risk`: connected source found an issue.
+- `pending` or `not connected`: source has not been connected yet.
+- `blocked`: source was attempted, but Google permissions/quota prevented data collection.
+
+Blocked technical checks should create a data-access action, not a fake SEO backlog item.
 
 ## Schedule
 
