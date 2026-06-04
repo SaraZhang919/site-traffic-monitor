@@ -34,6 +34,16 @@ GA4, GSC, and SEO data should stay local for the first version.
 
 The dashboard reads local JSON report snapshots. It should not expose raw GA data publicly.
 
+Private files are intentionally local-only:
+
+- `.env.local`
+- Google credential JSON files
+- `data/imports/*.csv`
+- `data/imports/source_metadata.json`
+- `data/snapshots/`
+
+These files are ignored by GitHub.
+
 Suggested snapshot structure:
 
 ```text
@@ -57,9 +67,13 @@ Dated files preserve report history. `latest.json` lets the dashboard load the n
 
 - GA4: organic traffic and page behavior
 - GSC: search performance by page and query
+- Google Sheets: existing normalized automation output when available
 - Ahrefs: backlinks, keyword and competitor enrichment
 - SEMrush: competitor and ranking enrichment through browser/intermediate-site access
 - Screaming Frog: local technical SEO crawling and exports
+- GSC URL Inspection API: indexing abnormality checks
+- PageSpeed Insights API: Core Web Vitals checks
+- OpenAI API: SEO diagnosis and action enrichment
 
 GA4 organic traffic should use:
 
@@ -158,6 +172,27 @@ Default approach:
 
 Manual deep audit can pull broader data when needed.
 
+## 28-Day Strategy Output
+
+The 28 Days report is for strategic SEO planning. It should include:
+
+- Potential topic clusters.
+- Pillar topic candidates.
+- Potential supporting article ideas.
+- Existing pages worth optimizing.
+- Internal link structure opportunities.
+- External link support candidates.
+- Technical debt and indexed-ratio signals.
+- Topic cluster decisions for the next cycle.
+
+GSC/GA4 are enough to suggest clusters, pages, and query opportunities. SEMrush/Ahrefs/Screaming Frog are separate evidence layers:
+
+- SEMrush: competitor and ranking enrichment.
+- Ahrefs: referring domains, backlink support, and link velocity.
+- Screaming Frog: internal link source pages, indexed ratio, crawl depth, and technical debt.
+
+When these files are not connected, the app should show `pending` and explain what data is missing instead of pretending the link or crawl analysis is complete.
+
 ## Actions
 
 Actions can be automatically executed or prepared.
@@ -199,6 +234,51 @@ Known schedules:
 - `monthly.yml`: old monthly/4-week workflow, no longer the preferred model for this app
 
 The existing workflows write to Google Sheets through `SHEET_ID`. The monitor app should reuse existing GA4/GSC data when available and avoid duplicate API pulls.
+
+## Data Collection Flow
+
+The local monitor workflow is hybrid by default:
+
+```text
+existing dated snapshot -> local CSV imports -> direct GA4/GSC API pull when missing -> OpenAI enrichment
+```
+
+This means the app does not fetch everything from APIs every time. It first checks whether the selected report date already has a usable snapshot, then checks whether local imported data covers the required comparison period. APIs are used only when the local data is missing or incomplete.
+
+Technical health is separate:
+
+- Indexing abnormalities use GSC URL Inspection API.
+- Core Web Vitals use PageSpeed Insights API.
+- If Google permissions or quota are missing, the dashboard shows `blocked`.
+- `blocked` means data access failed; it is not treated as a confirmed SEO problem.
+
+## Local Run
+
+For a static preview, the app can be served as plain files.
+
+For the real `Run Check` button, use the local Node server:
+
+```text
+node server.mjs
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4173/
+```
+
+If port `4173` is already busy, use another local port:
+
+```text
+PORT=4174 node server.mjs
+```
+
+and open:
+
+```text
+http://127.0.0.1:4174/
+```
 
 ## Run Schedule
 
