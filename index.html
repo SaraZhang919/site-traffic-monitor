@@ -51,7 +51,7 @@
       <div class="sidebar-actions">
         <button id="runCheckButton" class="primary-button" type="button">Run Check</button>
         <button id="exportButton" class="icon-button" type="button" title="Export current snapshot" aria-label="Export current snapshot">
-          <span aria-hidden="true">↓</span>
+          <span aria-hidden="true">DL</span>
         </button>
       </div>
 
@@ -134,7 +134,7 @@
                 <th>Action</th>
                 <th>Target</th>
                 <th>How To</th>
-                <th>Output</th>
+                <th>Expected Output</th>
               </tr>
             </thead>
             <tbody id="actionTableBody"></tbody>
@@ -158,10 +158,18 @@
         <div class="technical-grid" id="technicalGrid"></div>
       </section>
 
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Crawl Evidence Details</h3>
+          <span id="crawlEvidenceCount">0</span>
+        </div>
+        <div class="evidence-grid" id="crawlEvidenceGrid"></div>
+      </section>
+
       <section class="content-grid">
         <div class="panel">
           <div class="panel-head">
-            <h3>Top Pages</h3>
+            <h3>Top Landing Pages To Check</h3>
             <span id="pageCount">0</span>
           </div>
           <div class="compact-list" id="topPages"></div>
@@ -169,7 +177,7 @@
 
         <div class="panel">
           <div class="panel-head">
-            <h3>Top Queries</h3>
+            <h3>Top Queries To Review</h3>
             <span id="queryCount">0</span>
           </div>
           <div class="compact-list" id="topQueries"></div>
