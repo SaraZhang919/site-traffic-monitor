@@ -1,0 +1,220 @@
+import fs from "node:fs";
+import path from "node:path";
+
+const root = process.cwd();
+const importsDir = path.join(root, "data", "imports");
+const snapshotsDir = path.join(root, "data", "snapshots");
+const propertiesPath = path.join(root, "data", "properties.json");
+
+const args = parseArgs(process.argv.slice(2));
+const reportType = args.type || "daily";
+const reportEndDate = args.date || todayIso();
+const projectId = args.project || "vidmud";
+const subdomainId = args.subdomain || "en-www-vidmud-com";
+
+const properties = readJson(propertiesPath);
+const project = properties.projects.find((item) => item.id === projectId) || properties.projects[0];
+const subdomain = project.subdomains.find((item) => item.id === subdomainId) || project.subdomains[0];
+
+const ga4Rows = readCsvIfExists(path.join(importsDir, "ga4_daily.csv"));
+const gscRows = readCsvIfExists(path.join(importsDir, "gsc_daily.csv"));
+const queryRows = readCsvIfExists(path.join(importsDir, "gsc_page_query.csv"));
+const technicalRows = readCsvIfExists(path.join(importsDir, "technical_health.csv"));
+const ahrefsRows = readCsvIfExists(path.join(importsDir, "ahrefs_pages.csv"));
+const semrushRows = readCsvIfExists(path.join(importsDir, "semrush_keywords.csv"));
+const frogPageRows = readCsvIfExists(path.join(importsDir, "screaming_frog_pages.csv"));
+const frogLinkRows = readCsvIfExists(path.join(importsDir, "screaming_frog_internal_links.csv"));
+const importMetadata = readJsonIfExists(path.join(importsDir, "source_metadata.json"));
+
+const periods = calculatePeriods(reportType, reportEndDate);
+const ga4Current = aggregateGa4(ga4Rows, subdomain.host, periods.current);
+const ga4Baseline = aggregateGa4(ga4Rows, subdomain.host, periods.baseline);
+const gscCurrent = aggregateGsc(gscRows, subdomain.host, periods.current);
+const gscBaseline = aggregateGsc(gscRows, subdomain.host, periods.baseline);
+const dailyComparisons = buildDailyComparisons(reportType, reportEndDate, subdomain.host);
+const pageQueries = queryRows.filter((row) => hostMatches(row.Subdomain, subdomain.host) && inPeriod(row.Date, periods.current));
+const technicalChecks = buildTechnicalChecks(technicalRows, subdomain.host, periods.current, reportType);
+const comparisonOptions = buildComparisonOptions(reportType, reportEndDate);
+
+const snapshot = buildSnapshot({
+  reportType,
+  reportEndDate,
+  project,
+  subdomain,
+  periods,
+  ga4Current,
+  ga4Baseline,
+  gscCurrent,
+  gscBaseline,
+  pageQueries,
+  technicalChecks
+});
+
+writeSnapshot(snapshot, projectId, subdomainId, reportType, reportEndDate);
+
+console.log(`Generated ${snapshot.snapshotName}`);
+
+function buildSnapshot(input) {
+  const {
+    reportType,
+    reportEndDate,
+    project,
+    subdomain,
+    periods,
+    ga4Current,
+    ga4Baseline,
+    gscCurrent,
+    gscBaseline,
+    pageQueries,
+    technicalChecks
+  } = input;
+
+  const kpis = [
+    buildKpi("organic-sessions", "Organic Sessions", ga4Current.sessions, ga4Baseline.sessions, "GA4", dailyComparisons["organic-sessions"]),
+    buildKpi("active-users", "Active Users", ga4Current.activeUsers, ga4Baseline.activeUsers, "GA4", dailyComparisons["active-users"]),
+    buildKpi("gsc-clicks", "GSC Clicks", gscCurrent.clicks, gscBaseline.clicks, "GSC", dailyComparisons["gsc-clicks"]),
+    buildKpi("impressions", "Impressions", gscCurrent.impressions, gscBaseline.impressions, "GSC", dailyComparisons.impressions)
+  ];
+
+  const lowCtrQueries = pageQueries
+    .map(normalizeQueryRow)
+    .filter((row) => row.query && row.impressions >= 1000 && row.ctr < 1.5)
+    .sort((a, b) => b.impressions - a.impressions);
+
+  const quickWins = pageQueries
+    .map(normalizeQueryRow)
+    .filter((row) => row.position >= 8 && row.position <= 20 && row.impressions >= 1000)
+    .sort((a, b) => b.impressions - a.impressions);
+
+  const topPages = topByPage(pageQueries);
+  const topQueries = topQueriesToReview(pageQueries)
+    .slice(0, 8)
+    .map((row) => ({
+      query: row.query,
+      metric: `${formatNumber(row.impressions)} impressions | position ${round(row.position, 1)}`,
+      status: row.impressions >= 100 && row.ctr < 1.5 ? "opportunity" : "watch"
+    }));
+
+  const risks = [];
+  const opportunities = [];
+
+  const sessionKpi = kpis.find((item) => item.id === "organic-sessions");
+  if (sessionKpi.status === "risk" || sessionKpi.status === "critical") {
+    risks.push({
+      title: "Organic sessions declined against baseline",
+      target: topPages[0]?.path || subdomain.host,
+      diagnosis: "Traffic impact crossed the tiered threshold. Check whether the movement is page-specific, query-specific, or technical.",
+      actionType: "Check Top Landing Pages / GSC Index"
+    });
+  }
+
+  if (lowCtrQueries.length) {
+    opportunities.push({
+      title: "Low CTR queries with meaningful impressions",
+      target: lowCtrQueries[0].page,
+      diagnosis: "Search visibility exists, but snippets may not match query intent strongly enough.",
+      actionType: "Generate Title / Meta Suggestions"
+    });
+  }
+
+  const strategySignals = buildStrategySignals(reportType, pageQueries, topPages);
+  const actions = buildActions(reportType, lowCtrQueries, quickWins, topPages, technicalChecks, strategySignals);
+  const strategyPlan = buildStrategyPlan(reportType, lowCtrQueries, quickWins, topPages, technicalChecks, strategySignals);
+  const hasConnectedTechnicalChecks = technicalChecks.some((item) => item.source !== "Not connected yet");
+  const hasBlockedTechnicalChecks = technicalChecks.some((item) => item.status === "blocked");
+  const sourceSignals = buildSourceSignals(subdomain.host);
+
+  return {
+    reportType,
+    project: project.name,
+    subdomain: subdomain.host,
+    snapshotName: `${reportType}-${reportEndDate}.json`,
+    generatedAt: new Date().toISOString(),
+    currentPeriod: periods.current,
+    baselinePeriod: periods.baseline,
+    comparisonOptions,
+    freshness: importMetadata?.source === "google-apis" ? "Generated from direct GA4/GSC API pulls" : "Generated from local CSV imports",
+    health: chooseHealth(kpis, technicalChecks),
+    focus: focusForReport(reportType),
+    dataSources: [
+      { source: "GA4", status: ga4Rows.length ? "ready" : "missing", detail: importMetadata?.source === "google-apis" ? "GA4 Data API" : "Local ga4_daily.csv" },
+      { source: "GSC", status: gscRows.length ? "ready" : "missing", detail: importMetadata?.source === "google-apis" ? "GSC Search Analytics API" : "Local gsc_daily.csv" },
+      { source: "GSC Page + Query", status: pageQueries.length ? "ready" : "missing", detail: importMetadata?.source === "google-apis" ? "GSC Search Analytics API page+query" : "Local gsc_page_query.csv" },
+      { source: "SEMrush", status: sourceSignals.semrush.status, detail: sourceSignals.semrush.detail },
+      { source: "Ahrefs", status: sourceSignals.ahrefs.status, detail: sourceSignals.ahrefs.detail },
+      { source: "Screaming Frog", status: sourceSignals.screamingFrog.status, detail: sourceSignals.screamingFrog.detail },
+      { source: "Technical Health", status: hasBlockedTechnicalChecks ? "blocked" : hasConnectedTechnicalChecks ? "ready" : "not connected", detail: hasBlockedTechnicalChecks ? "Technical API access/quota blocked" : hasConnectedTechnicalChecks ? "Connected technical health data" : "Needs GSC indexing/CWV export, CrUX API, or PageSpeed Insights" }
+    ],
+    kpis,
+    risks,
+    opportunities,
+    actions,
+    strategyPlan,
+    strategySignals,
+    crawlEvidence: buildCrawlEvidence(strategySignals),
+    technicalChecks,
+    topPages,
+    topQueries
+  };
+}
+
+function buildKpi(id, label, value, baseline, source, comparisons = []) {
+  const absChange = value - baseline;
+  const pctChange = baseline ? (absChange / baseline) * 100 : 0;
+  const tier = baselineTier(baseline);
+  const status = classifyChange(absChange, pctChange, baseline, id === "impressions" ? "opportunity" : "risk");
+  return {
+    id,
+    label,
+    value: round(value, 2),
+    baseline: round(baseline, 2),
+    absChange: round(absChange, 2),
+    pctChange: round(pctChange, 1),
+    tier,
+    status,
+    source,
+    comparisons
+  };
+}
+
+function buildDailyComparisons(type, endDate, host) {
+  if (type !== "daily") return {};
+  const end = parseDate(endDate);
+  const previousDay = { start: formatDate(addDays(end, -1)), end: formatDate(addDays(end, -1)) };
+  const previous7 = { start: formatDate(addDays(end, -7)), end: formatDate(addDays(end, -1)) };
+  const previous7Days = datesBetween(previous7.start, previous7.end).length || 1;
+  const previousDayGa4 = aggregateGa4(ga4Rows, host, previousDay);
+  const previousDayGsc = aggregateGsc(gscRows, host, previousDay);
+  const previous7Ga4 = divideGa4(aggregateGa4(ga4Rows, host, previous7), previous7Days);
+  const previous7Gsc = divideGsc(aggregateGsc(gscRows, host, previous7), previous7Days);
+  return {
+    "organic-sessions": [
+      { label: "Previous 7-day average", value: round(previous7Ga4.sessions, 2) },
+      { label: "Previous day", value: round(previousDayGa4.sessions, 2) }
+    ],
+    "active-users": [
+      { label: "Previous 7-day average", value: round(previous7Ga4.activeUsers, 2) },
+      { label: "Previous day", value: round(previousDayGa4.activeUsers, 2) }
+    ],
+    "gsc-clicks": [
+      { label: "Previous 7-day average", value: round(previous7Gsc.clicks, 2) },
+      { label: "Previous day", value: round(previousDayGsc.clicks, 2) }
+    ],
+    impressions: [
+      { label: "Previous 7-day average", value: round(previous7Gsc.impressions, 2) },
+      { label: "Previous day", value: round(previousDayGsc.impressions, 2) }
+    ]
+  };
+}
+
+function divideGa4(metrics, divisor) {
+  return {
+    sessions: metrics.sessions / divisor,
+    activeUsers: metrics.activeUsers / divisor,
+    newUsers: metrics.newUsers / divisor,
+    keyEvents: metrics.keyEvents / divisor
+  };
+}
+
+function divideGsc(metrics, divisor) {
+  return {
